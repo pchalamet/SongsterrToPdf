@@ -61,6 +61,7 @@ internal sealed record CliOptions(
     bool Headless,
     bool Verbose,
     bool GeneratePdf,
+    PdfOrientation PdfOrientation,
     bool ShowHelp,
     string? ErrorMessage)
 {
@@ -68,7 +69,7 @@ internal sealed record CliOptions(
     {
         if (args.Length == 0)
         {
-            return new CliOptions(null, null, true, false, false, true, null);
+            return new CliOptions(null, null, true, false, false, PdfOrientation.Landscape, true, null);
         }
 
         string? url = null;
@@ -76,6 +77,7 @@ internal sealed record CliOptions(
         var headless = true;
         var verbose = false;
         var generatePdf = false;
+        var pdfOrientation = PdfOrientation.Landscape;
         var showHelp = false;
 
         for (var i = 0; i < args.Length; i++)
@@ -91,7 +93,7 @@ internal sealed record CliOptions(
                 case "--output":
                     if (i + 1 >= args.Length)
                     {
-                        return new CliOptions(null, null, true, false, false, false, "Missing value for --output.");
+                        return new CliOptions(null, null, true, false, false, PdfOrientation.Landscape, false, "Missing value for --output.");
                     }
 
                     outputDirectory = args[++i];
@@ -102,6 +104,12 @@ internal sealed record CliOptions(
                 case "--pdf":
                     generatePdf = true;
                     break;
+                case "--portrait":
+                    pdfOrientation = PdfOrientation.Portrait;
+                    break;
+                case "--landscape":
+                    pdfOrientation = PdfOrientation.Landscape;
+                    break;
                 case "-v":
                 case "--verbose":
                     verbose = true;
@@ -109,12 +117,12 @@ internal sealed record CliOptions(
                 default:
                     if (arg.StartsWith("-", StringComparison.Ordinal))
                     {
-                        return new CliOptions(null, null, true, false, false, false, $"Unknown option: {arg}");
+                        return new CliOptions(null, null, true, false, false, PdfOrientation.Landscape, false, $"Unknown option: {arg}");
                     }
 
                     if (url is not null)
                     {
-                        return new CliOptions(null, null, true, false, false, false, "Only one Songsterr URL may be provided.");
+                        return new CliOptions(null, null, true, false, false, PdfOrientation.Landscape, false, "Only one Songsterr URL may be provided.");
                     }
 
                     url = arg;
@@ -124,15 +132,15 @@ internal sealed record CliOptions(
 
         if (showHelp)
         {
-            return new CliOptions(url, outputDirectory, headless, verbose, generatePdf, true, null);
+            return new CliOptions(url, outputDirectory, headless, verbose, generatePdf, pdfOrientation, true, null);
         }
 
         if (string.IsNullOrWhiteSpace(url))
         {
-            return new CliOptions(null, outputDirectory, headless, verbose, generatePdf, false, "A Songsterr URL is required.");
+            return new CliOptions(null, outputDirectory, headless, verbose, generatePdf, pdfOrientation, false, "A Songsterr URL is required.");
         }
 
-        return new CliOptions(url, outputDirectory, headless, verbose, generatePdf, false, null);
+        return new CliOptions(url, outputDirectory, headless, verbose, generatePdf, pdfOrientation, false, null);
     }
 
     public static void PrintHelp()
@@ -147,6 +155,8 @@ internal sealed record CliOptions(
             Options:
               -o, --output <dir>   Output directory (default: ./<artist>_<song>/)
               --pdf                Generate PDF tablature files
+              --portrait           Generate portrait PDFs
+              --landscape          Generate landscape PDFs (default)
               --no-headless        Show the Chrome browser window
               -v, --verbose        Enable verbose debug output
               -h, --help           Show this help message
@@ -154,9 +164,16 @@ internal sealed record CliOptions(
             Examples:
               dotnet run -- "https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s27"
               dotnet run -- "https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s27" -o ./downloads
+              dotnet run -- "https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s27" --pdf --portrait
               dotnet run -- "https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s27" --pdf --no-headless
             """);
     }
+}
+
+internal enum PdfOrientation
+{
+    Portrait,
+    Landscape
 }
 
 internal sealed partial class SongsterrDownloader
@@ -299,7 +316,7 @@ internal sealed partial class SongsterrDownloader
 
                     try
                     {
-                        SongsterrWebsitePdfExporter.Export(url, pdfPath, file.Path, songInfo, track, songInfo.DefaultTrack, _options.Headless);
+                        SongsterrWebsitePdfExporter.Export(url, pdfPath, file.Path, songInfo, track, songInfo.DefaultTrack, _options.Headless, _options.PdfOrientation);
                         pdfCount++;
                     }
                     catch (Exception ex)

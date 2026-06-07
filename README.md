@@ -2,7 +2,7 @@
 
 `SongsterrToPdf` is a .NET 10 console tool that downloads Songsterr track JSON and exports PDF tablature.
 
-For the PDF path, it uses Songsterr's own browser renderer, captures the hydrated SVG rows, and writes them into a PDF with QuestPDF.
+For the PDF path, it uses Songsterr's own browser renderer, captures the hydrated SVG rows, and writes them into a clean browser-generated PDF.
 
 ## Requirements
 
@@ -30,6 +30,12 @@ Generate PDFs as well:
 dotnet run -- "https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s27" --pdf
 ```
 
+Generate portrait PDFs:
+
+```bash
+dotnet run -- "https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s27" --pdf --portrait
+```
+
 Write output to a custom directory:
 
 ```bash
@@ -52,6 +58,8 @@ dotnet run -- "https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s27" 
 
 - `-o, --output <dir>`: output directory
 - `--pdf`: generate PDF files beside the downloaded JSON
+- `--portrait`: generate portrait PDFs
+- `--landscape`: generate landscape PDFs, default
 - `--no-headless`: show the browser window
 - `-v, --verbose`: verbose logs
 - `-h, --help`: show help
@@ -78,4 +86,5 @@ artist_song/
 ## Notes
 
 - Chrome is used both to discover Songsterr track JSON and to capture Songsterr's rendered SVG rows for the PDF export.
+- PDF output supports both landscape and portrait orientation.
 - This is intended for personal use. Respect Songsterr's terms and the underlying rights for the tab content.

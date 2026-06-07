@@ -19,9 +19,10 @@ internal static class SongsterrWebsitePdfExporter
         SongInfo songInfo,
         TrackInfo? trackInfo,
         int? defaultTrack,
-        bool headless)
+        bool headless,
+        PdfOrientation pdfOrientation)
     {
-        ExportAsync(songUrl, pdfPath, jsonPath, songInfo, trackInfo, defaultTrack, headless)
+        ExportAsync(songUrl, pdfPath, jsonPath, songInfo, trackInfo, defaultTrack, headless, pdfOrientation)
             .GetAwaiter()
             .GetResult();
     }
@@ -33,7 +34,8 @@ internal static class SongsterrWebsitePdfExporter
         SongInfo songInfo,
         TrackInfo? trackInfo,
         int? defaultTrack,
-        bool headless)
+        bool headless,
+        PdfOrientation pdfOrientation)
     {
         var expectedMeasureCount = ReadMeasureCount(jsonPath);
         var executablePath = ResolveChromeExecutablePath();
@@ -460,7 +462,7 @@ internal static class SongsterrWebsitePdfExporter
                 $"Incomplete tablature extraction. Expected measure {expectedMeasureCount}, got {extraction.MaxLastMeasure.Value}.");
         }
 
-        await ExportRowsAsPdfAsync(browser, extraction.Rows, pdfPath, songUrl, songInfo, trackInfo);
+        await ExportRowsAsPdfAsync(browser, extraction.Rows, pdfPath, songUrl, songInfo, trackInfo, pdfOrientation);
     }
 
     private static int ReadMeasureCount(string jsonPath)
@@ -500,7 +502,8 @@ internal static class SongsterrWebsitePdfExporter
         string pdfPath,
         string songUrl,
         SongInfo songInfo,
-        TrackInfo? trackInfo)
+        TrackInfo? trackInfo,
+        PdfOrientation pdfOrientation)
     {
         var title = songInfo.Title;
         var artist = songInfo.Artist;
@@ -510,15 +513,16 @@ internal static class SongsterrWebsitePdfExporter
             _ when !string.IsNullOrWhiteSpace(trackInfo?.Instrument) => trackInfo!.Instrument,
             _ => "Tab"
         };
+        var orientationCss = pdfOrientation == PdfOrientation.Portrait ? "portrait" : "landscape";
         var markup = new StringBuilder();
         markup.Append(
-            """
+            $$"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
               <meta charset="utf-8" />
               <style>
-                @page { size: A4 landscape; margin: 18px; }
+                @page { size: A4 {{orientationCss}}; margin: 18px; }
                 html, body { margin: 0; padding: 0; }
                 body {
                   font-family: Helvetica, Arial, sans-serif;
@@ -596,7 +600,7 @@ internal static class SongsterrWebsitePdfExporter
         await pdfPage.PdfAsync(pdfPath, new PdfOptions
         {
             PrintBackground = true,
-            Landscape = true,
+            Landscape = pdfOrientation == PdfOrientation.Landscape,
             Format = PaperFormat.A4,
             MarginOptions = new MarginOptions
             {
